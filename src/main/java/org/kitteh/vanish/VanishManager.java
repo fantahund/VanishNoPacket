@@ -16,7 +16,6 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.messaging.PluginMessageListener;
-import org.bukkit.scheduler.BukkitRunnable;
 import org.kitteh.vanish.event.VanishStatusChangeEvent;
 
 import java.util.Collections;
@@ -82,7 +81,7 @@ public final class VanishManager {
     public VanishManager(final VanishPlugin plugin) {
         this.plugin = plugin;
         this.announceManipulator = new VanishAnnounceManipulator(this.plugin);
-        this.plugin.getServer().getScheduler().scheduleSyncRepeatingTask(this.plugin, this.showPlayer, 4, 4);
+        this.plugin.getScheduler().runGlobalAtFixedRate(this.showPlayer, 4, 4);
 
         this.plugin.getServer().getMessenger().registerIncomingPluginChannel(this.plugin, VanishManager.VANISH_PLUGIN_CHANNEL, new PluginMessageListener() {
             @Override
@@ -319,12 +318,7 @@ public final class VanishManager {
     private void showVanishedActionBar(Player vanishingPlayer) {
         if (Bukkit.getPlayer(vanishingPlayer.getUniqueId()) != null && isVanished(vanishingPlayer)) {
             vanishingPlayer.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(Settings.getVanishedActionBarMessage()));
-            new BukkitRunnable() {
-                @Override
-                public void run() {
-                    showVanishedActionBar(vanishingPlayer);
-                }
-            }.runTaskLater(plugin, 20);
+            plugin.getScheduler().runDelayedOnEntity(vanishingPlayer, () -> showVanishedActionBar(vanishingPlayer), 20);
         } else {
             vanishingPlayer.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(""));
         }
@@ -374,12 +368,9 @@ public final class VanishManager {
             batty.add(location.getWorld().spawnEntity(location, EntityType.BAT).getUniqueId());
         }
         this.bats.addAll(batty);
-        this.plugin.getServer().getScheduler().runTaskLater(this.plugin, new Runnable() {
-            @Override
-            public void run() {
-                VanishManager.this.effectBatsCleanup(location.getWorld(), batty);
-                VanishManager.this.bats.removeAll(batty);
-            }
+        this.plugin.getScheduler().runLocalDelayed(location, () -> {
+            VanishManager.this.effectBatsCleanup(location.getWorld(), batty);
+            VanishManager.this.bats.removeAll(batty);
         }, 3 * 20);
     }
 

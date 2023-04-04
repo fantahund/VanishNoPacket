@@ -17,14 +17,21 @@ import org.kitteh.vanish.listeners.ListenPlayerOther;
 import org.kitteh.vanish.listeners.ListenServerPing;
 import org.kitteh.vanish.listeners.ListenToYourHeart;
 import org.kitteh.vanish.utils.MinecraftVersion;
+import org.kitteh.vanish.utils.schedular.BukkitScheduler;
+import org.kitteh.vanish.utils.schedular.FoliaScheduler;
+import org.kitteh.vanish.utils.schedular.Scheduler;
+
 import java.io.File;
 import java.util.HashSet;
+import java.util.logging.Level;
 
 public final class VanishPlugin extends JavaPlugin {
 
     private final HashSet<String> haveInventoriesOpen = new HashSet<String>();
     private VanishManager manager;
     private final HookManager hookManager = new HookManager(this);
+
+    private Scheduler scheduler;
 
     /**
      * Informs VNP that a user has closed their fake chest
@@ -168,6 +175,16 @@ public final class VanishPlugin extends JavaPlugin {
 
     @Override
     public void onEnable() {
+        try {
+            Class.forName("io.papermc.paper.threadedregions.scheduler.ScheduledTask");
+            getLogger().log(Level.INFO, "Folia found. Use Folia Scheduler");
+            scheduler = new FoliaScheduler(this);
+        } catch (Throwable ignored) {
+            getLogger().log(Level.INFO, "Bukkit found. Use Bukkit Scheduler");
+            scheduler = new BukkitScheduler(this);
+        }
+
+
         final File check = new File(this.getDataFolder(), "config.yml");
         if (!check.exists()) {
             this.saveDefaultConfig();
@@ -220,5 +237,9 @@ public final class VanishPlugin extends JavaPlugin {
     public void reload() {
         this.reloadConfig();
         Settings.freshStart(this);
+    }
+
+    public Scheduler getScheduler() {
+        return scheduler;
     }
 }
